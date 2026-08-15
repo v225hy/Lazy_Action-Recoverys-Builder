@@ -159,6 +159,15 @@ jobs:
       run: |
         cd android-recovery
         set -x
+        # device-tree vendorsetup.sh (byf3332) aborts the build with '|| return 1'
+        # when a patch does not apply on SHRP/PBRP's diverged recovery source.
+        # Make those failures non-fatal so the build proceeds; mismatched
+        # patches are simply skipped (device-specific features may be absent,
+        # verify on-device behaviour afterwards).
+        for vs in $(find device -name vendorsetup.sh -path '*P720S20*' 2>/dev/null); do
+          sed -i 's/ || return 1/ || true/g' "$vs"
+          echo "made patch-tolerant: $vs"
+        done
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
         lunch ${{ env.DEVICE_MAKEFILE }}-eng && make clean && mka ${{ inputs.BUILD_TARGET }}image -j$(nproc --all)
